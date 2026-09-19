@@ -1,0 +1,93 @@
+PHD (Portable Heap Dump) File
+Format: PHD 6.0 (IBM J9 VM)
+Generated: 2024-09-17 10:30:00 UTC
+JVM: IBM J9 VM 8.0.8.15 (build openj9-0.41.0, JRE 8.0.8.15 Linux amd64-64-Bit)
+Server: AppServer01
+Cause: java/lang/OutOfMemoryError: Java heap space
+
+=== HEAP DUMP ANALYSIS REPORT ===
+
+HEAP SUMMARY
+------------
+Total heap size   : 2,048 MB
+Used at dump time : 2,046 MB (99.9%)
+Free at dump time :     2 MB (0.1%)
+GC roots          : 1,248,921 objects
+
+TOP MEMORY CONSUMERS (by retained heap size)
+---------------------------------------------
+Rank  Class                                                     Instances    Shallow Heap    Retained Heap
+----  -------------------------------------------------------   ----------   ------------    -------------
+  1   java.util.ArrayList                                          248,921    5,974,104 B     1,182,941,184 B  (56.6%) *** LEAK SUSPECT ***
+  2   [B (byte[])                                               1,204,812   432,013,312 B      432,013,312 B  (20.7%)
+  3   [C (char[])                                                 987,432   210,763,776 B      210,763,776 B  (10.1%)
+  4   java.lang.String                                          1,573,201   157,286,400 B      157,286,400 B   (7.5%)
+  5   com.company.reporting.ReportCacheManager$ReportEntry        248,921    99,614,720 B       99,614,720 B   (4.8%)
+  6   java.util.HashMap$Node                                      342,112    10,947,584 B       10,947,584 B   (0.5%)
+  7   java.util.HashMap                                            48,312     1,545,984 B        9,221,120 B   (0.4%)
+
+LEAK SUSPECT #1 — CRITICAL
+---------------------------
+Problem: Static unbounded ArrayList accumulating ReportEntry objects
+Class  : com.company.reporting.ReportCacheManager
+Field  : private static final List<ReportEntry> REPORT_CACHE = new ArrayList<>()
+Root   : Class static field (GC Root — never garbage collected)
+
+Object chain:
+  Class com.company.reporting.ReportCacheManager
+    └─ static field REPORT_CACHE
+         └─ java.util.ArrayList (id=0x00000006C3F12A80, size=248,921 entries)
+              └─ ReportEntry[0] (id=0x0000000701A34500)
+                   ├─ reportId: "RPT-20240917-000001" (String, 48 bytes)
+                   ├─ reportData: byte[4,096] (raw report content)
+                   ├─ generatedAt: java.util.Date
+                   └─ queryResult: java.util.ArrayList (nested, 128 rows)
+              └─ ReportEntry[1] ... (x248,920 more)
+
+Accumulation rate: ~1 entry per 12 seconds (based on scheduler interval)
+Time to fill 2GB at this rate: ~34 hours (matches server uptime of 30,244s)
+
+Root Cause: ReportCacheManager.cacheReport() adds entries to a static List on every
+            scheduled report generation. There is no eviction, expiry, or size limit.
+            The list grows indefinitely until OOM.
+
+Recommended Fix:
+  1. Replace ArrayList with a bounded cache (e.g. LinkedHashMap with removeEldestEntry)
+  2. Or use Caffeine / Guava Cache with size and TTL limits:
+       Cache<String, ReportEntry> cache = Caffeine.newBuilder()
+           .maximumSize(1000)
+           .expireAfterWrite(1, TimeUnit.HOURS)
+           .build();
+  3. Alternatively, do not cache — regenerate reports on demand or store in DB
+
+THREAD HOLDING LOCK ON LEAK OBJECT
+------------------------------------
+Thread     : WebContainer : 1  (J9VMThread 0x00007F3A4C001200)
+Lock       : com/company/reporting/ReportCacheManager@0x00000006C3F12A80
+State      : RUNNABLE — currently executing cacheReport() at line 187
+Waiting    : 6 other threads blocked on same monitor (WebContainer : 2,3,4,9,10,11)
+
+GARBAGE COLLECTION HISTORY (last 10 GC events before OOM)
+----------------------------------------------------------
+  10:29:45 UTC  Minor GC  pause=1,240ms  before=1,980MB after=1,979MB  collected=1MB  — near zero reclaim
+  10:29:47 UTC  Major GC  pause=8,120ms  before=1,979MB after=1,978MB  collected=1MB  — near zero reclaim
+  10:29:51 UTC  Minor GC  pause=1,890ms  before=1,978MB after=1,978MB  collected=0MB  — ZERO reclaim
+  10:29:53 UTC  Major GC  pause=9,340ms  before=1,978MB after=1,978MB  collected=0MB  — ZERO reclaim
+  10:29:57 UTC  Minor GC  pause=2,110ms  before=1,978MB after=1,978MB  collected=0MB  — ZERO reclaim
+  10:30:00 UTC  OOM thrown — GC unable to free any memory — all objects reachable via GC root (static field)
+
+NOTE: Zero collection indicates all objects are strongly reachable from a GC root.
+      This confirms a static reference is preventing garbage collection.
+
+ASSOCIATED FILES
+----------------
+  SystemOut.log                              — application timeline log
+  javacore.20240917.103000.AppServer01.0002.txt  — thread dump at time of OOM
+  heapdump.20240917.103000.AppServer01.0001.phd  — this file
+
+RECOMMENDATION
+--------------
+  Priority : CRITICAL
+  Action   : Deploy hotfix to remove unbounded static cache in ReportCacheManager
+  Restart  : Required after fix deployment
+  Monitor  : Watch heap usage after restart — should plateau below 1GB

@@ -1,0 +1,73 @@
+[2024-06-01 08:00:01] INFO  BVT Suite Started — Build #4821 — Branch: main
+[2024-06-01 08:00:02] INFO  Environment: QA | Node: 20.14.0 | Java: 17.0.11
+[2024-06-01 08:00:03] INFO  Running 142 test cases across 12 modules
+
+[2024-06-01 08:00:10] PASS  [AUTH-001] User login with valid credentials
+[2024-06-01 08:00:11] PASS  [AUTH-002] User login with invalid password returns 401
+[2024-06-01 08:00:12] PASS  [AUTH-003] Token refresh flow
+[2024-06-01 08:00:14] FAIL  [AUTH-004] Session token validation
+  ERROR: NullPointerException at AuthService.validateToken(AuthService.java:142)
+  STACK: java.lang.NullPointerException
+         at com.myapp.auth.AuthService.validateToken(AuthService.java:142)
+         at com.myapp.auth.SessionManager.checkSession(SessionManager.java:89)
+         at com.myapp.api.AuthController.authenticate(AuthController.java:56)
+  EXPECTED: Valid session returned
+  ACTUAL: Exception thrown — session object was null
+
+[2024-06-01 08:00:20] PASS  [DB-001] Database connection pool initialization
+[2024-06-01 08:00:21] PASS  [DB-002] Read query under 200ms
+[2024-06-01 08:00:35] FAIL  [DB-003] Bulk insert 10,000 records
+  ERROR: Connection timeout after 15000ms
+  DETAILS: HikariPool-1 connection acquisition timed out
+  POOL_STATUS: active=10, idle=0, waiting=47
+  QUERY: INSERT INTO transactions (id, user_id, amount, ts) VALUES (?, ?, ?, ?)
+  CAUSE: Connection pool exhausted — max pool size (10) too small for bulk operation
+
+[2024-06-01 08:00:40] PASS  [DB-004] Read replica failover
+[2024-06-01 08:00:41] PASS  [DB-005] Transaction rollback on error
+
+[2024-06-01 08:01:00] PASS  [API-001] GET /users returns 200
+[2024-06-01 08:01:01] PASS  [API-002] POST /users creates record
+[2024-06-01 08:01:05] FAIL  [API-003] POST /orders — order creation endpoint
+  ERROR: 500 Internal Server Error
+  RESPONSE: {"error":"Unexpected token < in JSON at position 0"}
+  REQUEST_BODY: {"userId":1001,"items":[{"sku":"PROD-99","qty":2}]}
+  ROOT_CAUSE: Upstream inventory service returned HTML error page instead of JSON
+  DEPENDENCY: InventoryService @ http://inventory-svc:8080/check — returned 503
+
+[2024-06-01 08:01:10] PASS  [API-004] DELETE /users/:id
+[2024-06-01 08:01:11] PASS  [API-005] Rate limiter blocks after 100 req/min
+
+[2024-06-01 08:02:00] PASS  [PAYMENT-001] Stripe payment intent creation
+[2024-06-01 08:02:10] FAIL  [PAYMENT-002] Payment webhook signature verification
+  ERROR: WebhookSignatureException: Signature mismatch
+  DETAILS: Expected HMAC-SHA256 signature did not match received signature
+  HEADER: stripe-signature: t=1717228930,v1=abc123...
+  SECRET_USED: whsec_test_**** (last 4: 9f2a)
+  LIKELY_CAUSE: Webhook secret rotated in Stripe dashboard but not updated in .env
+
+[2024-06-01 08:02:20] PASS  [PAYMENT-003] Refund processing
+[2024-06-01 08:02:21] PASS  [PAYMENT-004] Payment retry on network failure
+
+[2024-06-01 08:03:00] PASS  [CACHE-001] Redis SET and GET
+[2024-06-01 08:03:01] PASS  [CACHE-002] Cache expiry TTL
+[2024-06-01 08:03:05] FAIL  [CACHE-003] Cache invalidation on user update
+  ERROR: Stale data served after user profile update
+  DETAILS: Cache key "user:1001:profile" not invalidated after PUT /users/1001
+  CACHE_AGE: 3600s (1 hour) — TTL not overridden on write
+  IMPACT: Users see outdated profile data for up to 1 hour after update
+
+[2024-06-01 08:03:10] PASS  [CACHE-004] Cache miss fallback to DB
+
+[2024-06-01 08:04:00] PASS  [NOTIF-001] Email notification on signup
+[2024-06-01 08:04:05] FAIL  [NOTIF-002] SMS notification delivery
+  ERROR: TwilioRestException: Unable to create record — Trial account. You can only send messages to verified numbers
+  CODE: 21608
+  TO: +1-555-0192
+  CAUSE: Twilio trial account restriction — unverified destination number
+
+[2024-06-01 08:04:10] PASS  [NOTIF-003] Push notification to mobile
+
+[2024-06-01 08:05:00] INFO  BVT Suite Completed
+[2024-06-01 08:05:00] INFO  Results: 131 PASSED | 6 FAILED | 5 SKIPPED | Duration: 298s
+[2024-06-01 08:05:00] WARN  Build UNSTABLE — 6 failures detected

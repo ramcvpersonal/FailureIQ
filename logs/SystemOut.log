@@ -1,0 +1,95 @@
+[9/17/24 02:00:00:001 UTC] 00000001 SystemOut     O WebSphere Application Server v9.0.5.14 started
+[9/17/24 02:00:00:023 UTC] 00000001 SystemOut     O Server name: AppServer01
+[9/17/24 02:00:00:045 UTC] 00000001 SystemOut     O JVM: IBM J9 VM 8.0.8.15, heap min=512m max=2048m
+[9/17/24 02:00:01:100 UTC] 00000001 SystemOut     O Application 'CustomerPortal' started successfully
+[9/17/24 02:00:01:200 UTC] 00000001 SystemOut     O Application 'ReportingService' started successfully
+[9/17/24 02:00:01:300 UTC] 00000001 SystemOut     O HTTP Transport listening on port 9080
+[9/17/24 02:00:01:400 UTC] 00000001 SystemOut     O HTTPS Transport listening on port 9443
+
+[9/17/24 06:00:00:000 UTC] 00000023 SystemOut     O [PERF] JVM Heap usage: 512MB / 2048MB (25%)
+[9/17/24 06:00:00:000 UTC] 00000023 SystemOut     O [PERF] Active threads: 42 / 200
+[9/17/24 06:00:00:000 UTC] 00000023 SystemOut     O [PERF] DB connections active: 8 / 50
+
+[9/17/24 08:00:00:000 UTC] 00000023 SystemOut     O [PERF] JVM Heap usage: 768MB / 2048MB (37%)
+[9/17/24 08:00:00:000 UTC] 00000023 SystemOut     O [PERF] Active threads: 78 / 200
+[9/17/24 08:00:00:000 UTC] 00000023 SystemOut     O [PERF] DB connections active: 22 / 50
+
+[9/17/24 09:00:00:000 UTC] 00000023 SystemOut     O [PERF] JVM Heap usage: 1024MB / 2048MB (50%)
+[9/17/24 09:00:00:000 UTC] 00000023 SystemOut     O [PERF] Active threads: 112 / 200
+[9/17/24 09:00:00:000 UTC] 00000023 SystemOut     O [PERF] DB connections active: 35 / 50
+[9/17/24 09:00:01:000 UTC] 00000023 SystemOut     W [WARN] GC overhead increasing - minor GC frequency: 12/min
+
+[9/17/24 10:00:00:000 UTC] 00000023 SystemOut     O [PERF] JVM Heap usage: 1536MB / 2048MB (75%)
+[9/17/24 10:00:00:000 UTC] 00000023 SystemOut     O [PERF] Active threads: 156 / 200
+[9/17/24 10:00:00:000 UTC] 00000023 SystemOut     O [PERF] DB connections active: 47 / 50
+[9/17/24 10:00:01:000 UTC] 00000023 SystemOut     W [WARN] Connection pool near exhaustion: 47/50 in use
+[9/17/24 10:00:02:000 UTC] 00000023 SystemOut     W [WARN] GC overhead critical - major GC triggered, pause: 4200ms
+
+[9/17/24 10:15:00:000 UTC] 00000023 SystemOut     O [PERF] JVM Heap usage: 1920MB / 2048MB (93%)
+[9/17/24 10:15:00:100 UTC] 00000045 SystemErr     E [ERROR] WSVR0605W: Thread "WebContainer : 12" has been active for 623,000 milliseconds
+[9/17/24 10:15:00:200 UTC] 00000046 SystemErr     E [ERROR] WSVR0605W: Thread "WebContainer : 18" has been active for 598,000 milliseconds
+[9/17/24 10:15:00:300 UTC] 00000047 SystemErr     E [ERROR] WSVR0605W: Thread "WebContainer : 25" has been active for 612,000 milliseconds
+
+[9/17/24 10:30:00:001 UTC] 00000099 SystemErr     E JVMDUMP006I Processing dump event "systhrow", detail "java/lang/OutOfMemoryError" - please wait.
+[9/17/24 10:30:00:002 UTC] 00000099 SystemErr     E JVMDUMP032I JVM requested System dump using 'heapdump.20240917.103000.AppServer01.0001.phd'
+[9/17/24 10:30:00:003 UTC] 00000099 SystemErr     E JVMDUMP010I System dump written to heapdump.20240917.103000.AppServer01.0001.phd
+[9/17/24 10:30:00:004 UTC] 00000099 SystemErr     E JVMDUMP032I JVM requested Java dump using 'javacore.20240917.103000.AppServer01.0002.txt'
+[9/17/24 10:30:00:005 UTC] 00000099 SystemErr     E JVMDUMP010I Java dump written to javacore.20240917.103000.AppServer01.0002.txt
+[9/17/24 10:30:00:006 UTC] 00000099 SystemErr     E JVMDUMP013I Processed dump event "systhrow", detail "java/lang/OutOfMemoryError".
+
+[9/17/24 10:30:01:000 UTC] 00000099 SystemErr     E java.lang.OutOfMemoryError: Java heap space
+[9/17/24 10:30:01:001 UTC] 00000099 SystemErr     E     at java.util.Arrays.copyOf(Arrays.java:3210)
+[9/17/24 10:30:01:002 UTC] 00000099 SystemErr     E     at java.util.ArrayList.grow(ArrayList.java:265)
+[9/17/24 10:30:01:003 UTC] 00000099 SystemErr     E     at com.company.reporting.ReportCacheManager.cacheReport(ReportCacheManager.java:187)
+[9/17/24 10:30:01:004 UTC] 00000099 SystemErr     E     at com.company.reporting.ReportService.generateAndCache(ReportService.java:342)
+[9/17/24 10:30:01:005 UTC] 00000099 SystemErr     E     at com.company.reporting.ReportScheduler.runScheduledReport(ReportScheduler.java:98)
+[9/17/24 10:30:01:006 UTC] 00000099 SystemErr     E     at com.ibm.ws.webcontainer.servlet.ServletWrapper.service(ServletWrapper.java:1213)
+
+[9/17/24 10:30:03:000 UTC] 00000001 SystemErr     E CWWKE0701E: FrameworkEvent ERROR - java.lang.OutOfMemoryError: Java heap space
+[9/17/24 10:30:05:000 UTC] 00000001 SystemOut     O CWWKE0036I: The server AppServer01 stopped after 30,244 seconds.
+
+# ── RESTART #1 ──────────────────────────────────────────────────────────────
+[9/17/24 10:31:00:001 UTC] 00000001 SystemOut     O WebSphere Application Server v9.0.5.14 started (restart #1)
+[9/17/24 10:31:01:100 UTC] 00000001 SystemOut     O Application 'CustomerPortal' started successfully
+[9/17/24 10:31:01:200 UTC] 00000001 SystemOut     O Application 'ReportingService' started successfully
+[9/17/24 10:31:05:000 UTC] 00000023 SystemOut     O [PERF] JVM Heap usage: 512MB / 2048MB (25%) — clean after restart
+
+[9/17/24 12:00:00:000 UTC] 00000023 SystemOut     O [PERF] JVM Heap usage: 980MB / 2048MB (48%)
+[9/17/24 12:00:01:000 UTC] 00000023 SystemOut     W [WARN] GC overhead increasing - minor GC frequency: 9/min
+
+[9/17/24 14:00:00:000 UTC] 00000023 SystemOut     O [PERF] JVM Heap usage: 1620MB / 2048MB (79%)
+[9/17/24 14:00:01:000 UTC] 00000045 SystemErr     E [ERROR] WSVR0605W: Thread "WebContainer : 7" has been active for 489,000 milliseconds
+[9/17/24 14:00:02:000 UTC] 00000023 SystemErr     E [ERROR] ConnectionPool: No connections available - waited 30000ms
+[9/17/24 14:00:02:001 UTC] 00000024 SystemErr     E [ERROR] ConnectionPool: No connections available - waited 30000ms
+
+[9/17/24 14:15:00:001 UTC] 00000099 SystemErr     E JVMDUMP006I Processing dump event "systhrow", detail "java/lang/OutOfMemoryError" - please wait.
+[9/17/24 14:15:00:002 UTC] 00000099 SystemErr     E JVMDUMP032I JVM requested System dump using 'heapdump.20240917.141500.AppServer01.0003.phd'
+[9/17/24 14:15:00:003 UTC] 00000099 SystemErr     E JVMDUMP010I System dump written to heapdump.20240917.141500.AppServer01.0003.phd
+[9/17/24 14:15:00:004 UTC] 00000099 SystemErr     E JVMDUMP032I JVM requested Java dump using 'javacore.20240917.141500.AppServer01.0004.txt'
+[9/17/24 14:15:00:005 UTC] 00000099 SystemErr     E JVMDUMP010I Java dump written to javacore.20240917.141500.AppServer01.0004.txt
+
+[9/17/24 14:15:01:000 UTC] 00000099 SystemErr     E java.lang.OutOfMemoryError: Java heap space
+[9/17/24 14:15:01:001 UTC] 00000099 SystemErr     E     at java.lang.StringBuilder.expandCapacity(StringBuilder.java:117)
+[9/17/24 14:15:01:002 UTC] 00000099 SystemErr     E     at com.company.audit.AuditLogger.buildAuditEntry(AuditLogger.java:223)
+[9/17/24 14:15:01:003 UTC] 00000099 SystemErr     E     at com.company.web.RequestFilter.doFilter(RequestFilter.java:67)
+[9/17/24 14:15:01:004 UTC] 00000099 SystemErr     E     at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:118)
+
+[9/17/24 14:15:05:000 UTC] 00000001 SystemOut     O CWWKE0036I: The server AppServer01 stopped (restart #1).
+
+# ── RESTART #2 ──────────────────────────────────────────────────────────────
+[9/17/24 14:16:00:001 UTC] 00000001 SystemOut     O WebSphere Application Server v9.0.5.14 started (restart #2)
+[9/17/24 14:16:01:100 UTC] 00000001 SystemOut     O Application 'CustomerPortal' started successfully
+
+[9/17/24 16:30:00:000 UTC] 00000023 SystemOut     O [PERF] JVM Heap usage: 1100MB / 2048MB (53%)
+[9/17/24 16:30:01:000 UTC] 00000023 SystemErr     E [ERROR] SRVE0777E: Exception thrown by application class 'com.company.session.SessionRegistry.getActiveSessions':89
+[9/17/24 16:30:01:001 UTC] 00000023 SystemErr     E java.lang.OutOfMemoryError: Java heap space
+[9/17/24 16:30:01:002 UTC] 00000023 SystemErr     E     at java.util.concurrent.ConcurrentHashMap.put(ConcurrentHashMap.java:1006)
+[9/17/24 16:30:01:003 UTC] 00000023 SystemErr     E     at com.company.session.SessionRegistry.registerSession(SessionRegistry.java:112)
+
+[9/17/24 16:30:02:001 UTC] 00000099 SystemErr     E JVMDUMP006I Processing dump event "systhrow", detail "java/lang/OutOfMemoryError" - please wait.
+[9/17/24 16:30:02:002 UTC] 00000099 SystemErr     E JVMDUMP010I System dump written to heapdump.20240917.163002.AppServer01.0005.phd
+[9/17/24 16:30:02:003 UTC] 00000099 SystemErr     E JVMDUMP010I Java dump written to javacore.20240917.163002.AppServer01.0006.txt
+
+[9/17/24 16:30:05:000 UTC] 00000001 SystemOut     O CWWKE0036I: The server AppServer01 stopped (restart #2).
+[9/17/24 16:30:06:000 UTC] 00000001 SystemErr     E CWWKE0701E: Server crashed 3 times in 6 hours — automatic restart disabled
+[9/17/24 16:30:06:001 UTC] 00000001 SystemOut     O SERVER DOWN — Manual intervention required

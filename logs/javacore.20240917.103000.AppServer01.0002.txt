@@ -1,0 +1,174 @@
+0SECTION       TITLE subcomponent dump routine
+NULL           ===============================
+1TITLEDUMP     Java dump written to: javacore.20240917.103000.AppServer01.0002.txt
+1TITLEDUMP     Requested by user or signal
+NULL
+0SECTION       GPINFO subcomponent dump routine
+NULL           ================================
+2XHOSLEVEL     OS Level         : Linux 5.15.0-101-generic (amd64)
+2XHCPUS        Processors       : 8
+NULL
+0SECTION       MEMINFO subcomponent dump routine
+NULL           ==================================
+1STHEAPFREE    Heap free memory  :       61,440 bytes (0.003%)
+1STHEAPUSED    Heap used memory  : 2,086,789,120 bytes (99.997%)
+1STHEAPSIZE    Heap total size   : 2,087,000,000 bytes (2048 MB)
+NULL
+0SECTION       THREADS subcomponent dump routine
+NULL           ==================================
+NULL
+1XMTHDINFO     Thread Details
+NULL
+"WebContainer : 1" J9VMThread:0x00007F3A4C001200 j9thread_t:0x00007F3A4C000A00
+3XMTHREADINFO      State: R, priority=5
+3XMTHREADINFO      java/lang/Thread.State: RUNNABLE
+4XESTACKTRACE          at com.company.reporting.ReportCacheManager.cacheReport(ReportCacheManager.java:187)
+4XESTACKTRACE          at com.company.reporting.ReportService.generateAndCache(ReportService.java:342)
+4XESTACKTRACE          at com.company.reporting.ReportScheduler.runScheduledReport(ReportScheduler.java:98)
+4XESTACKTRACE          at com.ibm.ws.webcontainer.servlet.ServletWrapper.service(ServletWrapper.java:1213)
+NULL
+
+"WebContainer : 2" J9VMThread:0x00007F3A4C001300
+3XMTHREADINFO      State: B, priority=5
+3XMTHREADINFO      java/lang/Thread.State: BLOCKED (on object monitor)
+3XMTHREADINFO      Blocked on: com/company/reporting/ReportCacheManager@0x00000006C3F12A80
+3XMTHREADINFO      Blocked by: "WebContainer : 1"
+4XESTACKTRACE          at com.company.reporting.ReportCacheManager.cacheReport(ReportCacheManager.java:180)
+4XESTACKTRACE          at com.company.reporting.ReportService.generateAndCache(ReportService.java:342)
+NULL
+
+"WebContainer : 3" J9VMThread:0x00007F3A4C001400
+3XMTHREADINFO      State: B, priority=5
+3XMTHREADINFO      java/lang/Thread.State: BLOCKED (on object monitor)
+3XMTHREADINFO      Blocked on: com/company/reporting/ReportCacheManager@0x00000006C3F12A80
+3XMTHREADINFO      Blocked by: "WebContainer : 1"
+4XESTACKTRACE          at com.company.reporting.ReportCacheManager.cacheReport(ReportCacheManager.java:180)
+NULL
+
+"WebContainer : 4" J9VMThread:0x00007F3A4C001500
+3XMTHREADINFO      State: B, priority=5
+3XMTHREADINFO      java/lang/Thread.State: BLOCKED (on object monitor)
+3XMTHREADINFO      Blocked on: com/company/reporting/ReportCacheManager@0x00000006C3F12A80
+3XMTHREADINFO      Blocked by: "WebContainer : 1"
+4XESTACKTRACE          at com.company.reporting.ReportCacheManager.cacheReport(ReportCacheManager.java:180)
+NULL
+
+"WebContainer : 5" J9VMThread:0x00007F3A4C001600
+3XMTHREADINFO      State: CW, priority=5
+3XMTHREADINFO      java/lang/Thread.State: WAITING (on object monitor)
+4XESTACKTRACE          at java.lang.Object.wait(Native Method)
+4XESTACKTRACE          at com.ibm.ws.util.ThreadPool.getTask(ThreadPool.java:463)
+4XESTACKTRACE          at com.ibm.ws.util.ThreadPool$Worker.run(ThreadPool.java:542)
+NULL
+
+"WebContainer : 6" J9VMThread:0x00007F3A4C001700
+3XMTHREADINFO      State: R, priority=5
+3XMTHREADINFO      java/lang/Thread.State: RUNNABLE
+4XESTACKTRACE          at java.net.SocketInputStream.socketRead0(Native Method)
+4XESTACKTRACE          at com.company.db.DBConnectionManager.executeQuery(DBConnectionManager.java:234)
+4XESTACKTRACE          at com.company.reporting.ReportDAO.fetchReportData(ReportDAO.java:112)
+4XESTACKTRACE          at com.company.reporting.ReportService.generateAndCache(ReportService.java:318)
+NULL
+
+"WebContainer : 7" J9VMThread:0x00007F3A4C001800
+3XMTHREADINFO      State: R, priority=5
+3XMTHREADINFO      java/lang/Thread.State: RUNNABLE
+4XESTACKTRACE          at java.net.SocketInputStream.socketRead0(Native Method)
+4XESTACKTRACE          at com.company.db.DBConnectionManager.executeQuery(DBConnectionManager.java:234)
+4XESTACKTRACE          at com.company.reporting.ReportDAO.fetchReportData(ReportDAO.java:112)
+4XESTACKTRACE          at com.company.reporting.ReportService.generateAndCache(ReportService.java:318)
+NULL
+
+"WebContainer : 8" J9VMThread:0x00007F3A4C001900
+3XMTHREADINFO      State: R, priority=5
+3XMTHREADINFO      java/lang/Thread.State: RUNNABLE
+4XESTACKTRACE          at java.net.SocketInputStream.socketRead0(Native Method)
+4XESTACKTRACE          at com.company.db.DBConnectionManager.executeQuery(DBConnectionManager.java:234)
+4XESTACKTRACE          at com.company.reporting.ReportDAO.fetchReportData(ReportDAO.java:112)
+4XESTACKTRACE          at com.company.reporting.ReportService.generateAndCache(ReportService.java:318)
+NULL
+
+"WebContainer : 9" J9VMThread:0x00007F3A4C001A00
+3XMTHREADINFO      State: B, priority=5
+3XMTHREADINFO      java/lang/Thread.State: BLOCKED (on object monitor)
+3XMTHREADINFO      Blocked on: com/company/reporting/ReportCacheManager@0x00000006C3F12A80
+3XMTHREADINFO      Blocked by: "WebContainer : 1"
+4XESTACKTRACE          at com.company.reporting.ReportCacheManager.cacheReport(ReportCacheManager.java:180)
+NULL
+
+"WebContainer : 10" J9VMThread:0x00007F3A4C001B00
+3XMTHREADINFO      State: B, priority=5
+3XMTHREADINFO      java/lang/Thread.State: BLOCKED (on object monitor)
+3XMTHREADINFO      Blocked on: com/company/reporting/ReportCacheManager@0x00000006C3F12A80
+3XMTHREADINFO      Blocked by: "WebContainer : 1"
+4XESTACKTRACE          at com.company.reporting.ReportCacheManager.cacheReport(ReportCacheManager.java:180)
+NULL
+
+"WebContainer : 11" J9VMThread:0x00007F3A4C001C00
+3XMTHREADINFO      State: B, priority=5
+3XMTHREADINFO      java/lang/Thread.State: BLOCKED (on object monitor)
+3XMTHREADINFO      Blocked on: com/company/reporting/ReportCacheManager@0x00000006C3F12A80
+3XMTHREADINFO      Blocked by: "WebContainer : 1"
+4XESTACKTRACE          at com.company.reporting.ReportCacheManager.cacheReport(ReportCacheManager.java:180)
+NULL
+
+"WebContainer : 12" J9VMThread:0x00007F3A4C001D00
+3XMTHREADINFO      State: R, priority=5
+3XMTHREADINFO      java/lang/Thread.State: RUNNABLE
+3XMTHREADINFO      Active for: 623,000ms  ← HUNG THREAD
+4XESTACKTRACE          at java.lang.Object.wait(Native Method)
+4XESTACKTRACE          at com.company.session.SessionRegistry.waitForSession(SessionRegistry.java:76)
+4XESTACKTRACE          at com.company.web.SessionFilter.doFilter(SessionFilter.java:45)
+4XESTACKTRACE          at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:118)
+NULL
+
+"GC Slave Thread 1" J9VMThread:0x00007F3A48001200
+3XMTHREADINFO      State: R, priority=10
+3XMTHREADINFO      java/lang/Thread.State: RUNNABLE
+4XESTACKTRACE          at com.ibm.j9.jvmti.GC.gcCycleStart(Native Method)
+NULL
+
+"JIT Compilation Thread-0" J9VMThread:0x00007F3A44001200
+3XMTHREADINFO      State: R, priority=10
+3XMTHREADINFO      java/lang/Thread.State: RUNNABLE
+4XESTACKTRACE          at com.ibm.jit.JITHelpers.runJITCompile(Native Method)
+NULL
+
+NULL
+0SECTION       LOCKS subcomponent dump routine
+NULL           ================================
+1LKPOOLINFO    Monitor pool info:
+2LKPOOLTOTAL     Current total number of monitors: 248
+NULL
+1LKMONPOOLDUMP Monitor Pool Dump (flat list):
+2LKMONINUSE      sys_mon_t:0x00007F3A4C3F12A80 infl_mon_t: 0x00007F3A4C3F12AC0
+3LKMONOBJECT       com/company/reporting/ReportCacheManager@0x00000006C3F12A80: Owned by "WebContainer : 1" (J9VMThread:0x00007F3A4C001200)
+3LKNOTIFYQ           Waiting to be notified: "WebContainer : 2", "WebContainer : 3", "WebContainer : 4", "WebContainer : 9", "WebContainer : 10", "WebContainer : 11"
+NULL
+
+NULL
+0SECTION       HEAPINFO subcomponent dump routine
+NULL           ===================================
+1STHEAPTYPE    Object Memory
+NULL
+2STHEAPSPACE   Heap Space  Name: Generational
+3STHEAPTYPE    Heap Type: GenCon
+3STHEAPSIZE    Total heap size: 2,087,000,000 bytes
+3STHEAPFREE    Free memory:          61,440 bytes  ← CRITICAL: nearly 0 free
+NULL
+2STCLASS       Top Memory Consumers:
+3STCLASSTOP      1. java/util/ArrayList : 1,182,941,184 bytes (56.6%) — 248,921 instances
+3STCLASSTOP      2. byte[]              :   432,013,312 bytes (20.7%)
+3STCLASSTOP      3. char[]              :   210,763,776 bytes (10.1%)
+3STCLASSTOP      4. java/lang/String    :   157,286,400 bytes ( 7.5%)
+3STCLASSTOP      5. com/company/reporting/ReportCacheManager$ReportEntry : 99,614,720 bytes (4.8%)
+NULL
+
+NULL
+0SECTION       ENVINFO subcomponent dump routine
+NULL           ==================================
+2CIUSERARG     -Xmx2048m
+2CIUSERARG     -Xms512m
+2CIUSERARG     -verbose:gc
+2CIUSERARG     -Xgcpolicy:gencon
+NULL

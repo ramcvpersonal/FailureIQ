@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FailureIQ — Visual Deep-Dive</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.65;
+    background: #f4f6f9; color: #1f2328;
+    padding: 0 0 60px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%);
+    color: #fff; padding: 48px 24px 40px; text-align: center;
+  }
+  .hero-badge {
+    display: inline-block; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3); border-radius: 20px;
+    padding: 4px 14px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px;
+    color: #93c5fd;
+  }
+  .hero h1 { font-size: 32px; font-weight: 800; margin-bottom: 10px; }
+  .hero p  { font-size: 14px; color: #bfdbfe; max-width: 600px; margin: 0 auto 24px; line-height: 1.7; }
+  .hero-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .hero-chip {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px; padding: 4px 14px; font-size: 12px; font-weight: 600; color: #e0f2fe;
+  }
+
+  /* ── Page layout ── */
+  .page { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+  section { margin-top: 48px; }
+  h2 {
+    font-size: 18px; font-weight: 800; color: #0f172a;
+    margin-bottom: 18px; padding-bottom: 10px;
+    border-bottom: 3px solid #3b82f6;
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2 .sec-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: #3b82f6; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  h3 { font-size: 14px; font-weight: 700; color: #1e40af; margin: 20px 0 8px; }
+  p  { margin-bottom: 10px; color: #374151; }
+
+  /* ── Status ── */
+  .status-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: #f0fdf4; border: 1px solid #86efac;
+    border-radius: 10px; padding: 14px 18px; margin-top: 28px;
+  }
+  .pulse { width: 14px; height: 14px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+  .status-bar p { margin: 0; font-weight: 700; color: #15803d; font-size: 13px; }
+
+  .alert {
+    background: #fffbeb; border: 1px solid #fcd34d;
+    border-radius: 10px; padding: 12px 18px; margin-top: 14px; font-size: 13px;
+  }
+  .alert strong { color: #92400e; }
+
+  /* ── Cards ── */
+  .card {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; padding: 20px 24px; margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .mini-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 16px; text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .mini-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .mini-card .title { font-size: 13px; font-weight: 700; color: #1e3a5f; margin-bottom: 4px; }
+  .mini-card .desc  { font-size: 11px; color: #64748b; }
+
+  /* ── Code ── */
+  pre {
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 8px; padding: 14px 18px;
+    font-size: 12px; overflow-x: auto; line-height: 1.6;
+    font-family: "SF Mono","Fira Code",monospace;
+    margin: 8px 0 14px;
+  }
+  code {
+    font-family: "SF Mono","Fira Code",monospace;
+    font-size: 12px; background: #f1f5f9;
+    padding: 2px 6px; border-radius: 4px; color: #0f172a;
+  }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 14px; }
+  th { text-align: left; background: #f8fafc; padding: 9px 12px; border: 1px solid #e2e8f0; font-weight: 700; color: #374151; }
+  td { padding: 8px 12px; border: 1px solid #e2e8f0; vertical-align: top; color: #374151; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── Step list ── */
+  .steps { list-style: none; padding: 0; }
+  .step {
+    display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px;
+  }
+  .step-num {
+    min-width: 34px; height: 34px; border-radius: 50%;
+    background: #1d4ed8; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; flex-shrink: 0; margin-top: 2px;
+    box-shadow: 0 2px 6px rgba(29,78,216,0.4);
+  }
+  .step-body { flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; }
+  .step-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #0f172a; }
+  .step-desc  { font-size: 13px; color: #64748b; }
+
+  /* ── Severity badges ── */
+  .sev-c { color: #dc2626; font-weight: 700; }
+  .sev-h { color: #d97706; font-weight: 700; }
+  .sev-m { color: #2563eb; font-weight: 700; }
+  .sev-l { color: #16a34a; font-weight: 700; }
+
+  /* ── SVG diagram wrappers ── */
+  .diagram { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px; margin-bottom: 20px; overflow-x: auto; }
+  .diagram svg { display: block; max-width: 100%; }
+
+  /* ── Layer boxes ── */
+  .layer-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .layer-box {
+    flex: 1; min-width: 120px;
+    border-radius: 10px; padding: 14px 10px; text-align: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .layer-box .lfile { font-size: 11px; font-weight: 400; margin-top: 4px; opacity: 0.85; }
+
+  .layer-cli    { background: #eff6ff; border: 2px solid #3b82f6; color: #1d4ed8; }
+  .layer-agent  { background: #f0fdf4; border: 2px solid #22c55e; color: #15803d; }
+  .layer-tools  { background: #fef3c7; border: 2px solid #f59e0b; color: #92400e; }
+  .layer-rag    { background: #faf5ff; border: 2px solid #a855f7; color: #7e22ce; }
+  .layer-llm    { background: #fff1f2; border: 2px solid #f43f5e; color: #9f1239; }
+  .layer-schema { background: #f0f9ff; border: 2px solid #0ea5e9; color: #0369a1; }
+
+  .arrow-down {
+    text-align: center; font-size: 20px; color: #94a3b8; line-height: 1;
+    margin: 2px 0;
+  }
+
+  /* ── ReAct loop visual ── */
+  .react-loop {
+    display: flex; gap: 0; align-items: stretch;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+    overflow: hidden; margin-bottom: 16px;
+  }
+  .react-step {
+    flex: 1; padding: 16px 12px; text-align: center; border-right: 1px solid #e2e8f0;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .react-step:last-child { border-right: none; }
+  .react-step .rs-icon { font-size: 22px; }
+  .react-step .rs-label { font-size: 12px; font-weight: 800; color: #0f172a; }
+  .react-step .rs-desc  { font-size: 11px; color: #64748b; }
+  .react-step.reason { background: #eff6ff; }
+  .react-step.act    { background: #f0fdf4; }
+  .react-step.obs    { background: #fffbeb; }
+  .react-step.out    { background: #fff1f2; }
+
+  /* ── Pipeline flow ── */
+  .pipeline { display: flex; flex-direction: column; gap: 4px; }
+  .pipe-row { display: flex; align-items: stretch; gap: 0; }
+  .pipe-dot-col {
+    width: 40px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+  }
+  .pipe-dot {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; color: #fff; flex-shrink: 0;
+  }
+  .pipe-line { width: 2px; flex: 1; min-height: 8px; background: #cbd5e1; margin: 0 auto; }
+  .pipe-card {
+    flex: 1; background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 10px; padding: 12px 16px; margin: 0 0 4px 12px;
+  }
+  .pipe-card .pc-title { font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 3px; }
+  .pipe-card .pc-file  { font-size: 11px; color: #6366f1; font-weight: 600; margin-bottom: 4px; }
+  .pipe-card .pc-desc  { font-size: 12px; color: #64748b; }
+  .pipe-row:last-child .pipe-line { display: none; }
+
+  .col-1 { background: #3b82f6; }
+  .col-2 { background: #8b5cf6; }
+  .col-3 { background: #10b981; }
+  .col-4 { background: #f59e0b; }
+  .col-5 { background: #ef4444; }
+  .col-6 { background: #06b6d4; }
+  .col-7 { background: #ec4899; }
+  .col-8 { background: #84cc16; }
+  .col-9 { background: #f97316; }
+  .col-10{ background: #6366f1; }
+
+  /* ── File map ── */
+  .file-map { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px,1fr)); gap: 12px; }
+  .file-node {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 14px; position: relative; overflow: hidden;
+  }
+  .file-node::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px; border-radius: 10px 0 0 10px;
+  }
+  .fn-entry::before  { background: #3b82f6; }
+  .fn-agent::before  { background: #10b981; }
+  .fn-llm::before    { background: #ef4444; }
+  .fn-tools::before  { background: #f59e0b; }
+  .fn-kb::before     { background: #8b5cf6; }
+  .fn-schema::before { background: #06b6d4; }
+  .fn-demo::before   { background: #ec4899; }
+  .file-node .fn-name { font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 4px; font-family: "SF Mono","Fira Code",monospace; }
+  .file-node .fn-role { font-size: 11px; font-weight: 600; color: #6366f1; margin-bottom: 4px; }
+  .file-node .fn-desc { font-size: 11px; color: #64748b; line-height: 1.5; }
+
+  /* ── RAG visual ── */
+  .rag-flow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+  .rag-box {
+    border-radius: 8px; padding: 10px 14px; font-size: 12px; font-weight: 600;
+    text-align: center; flex: 1; min-width: 110px;
+  }
+  .rag-arrow { font-size: 18px; color: #94a3b8; flex-shrink: 0; }
+  .rag-in  { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+  .rag-kb  { background: #faf5ff; border: 1px solid #d8b4fe; color: #7e22ce; }
+  .rag-score { background: #fef3c7; border: 1px solid #fde68a; color: #92400e; }
+  .rag-out { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+
+  /* ── LLM provider visual ── */
+  .provider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .prov-box { border-radius: 10px; padding: 16px; }
+  .prov-free { background: #f0fdf4; border: 2px solid #22c55e; }
+  .prov-paid { background: #fff7ed; border: 2px solid #f97316; }
+  .prov-title { font-weight: 800; font-size: 13px; margin-bottom: 8px; }
+  .prov-free .prov-title { color: #15803d; }
+  .prov-paid .prov-title { color: #c2410c; }
+  .prov-model { font-size: 12px; padding: 3px 0; color: #374151; }
+
+  /* ── Severity visual ── */
+  .sev-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+  .sev-card { border-radius: 10px; padding: 14px 10px; text-align: center; }
+  .sev-crit { background: #fef2f2; border: 2px solid #fca5a5; }
+  .sev-high { background: #fffbeb; border: 2px solid #fde68a; }
+  .sev-med  { background: #eff6ff; border: 2px solid #bfdbfe; }
+  .sev-low  { background: #f0fdf4; border: 2px solid #86efac; }
+  .sev-card .sv-icon  { font-size: 24px; margin-bottom: 6px; }
+  .sev-card .sv-label { font-size: 12px; font-weight: 800; margin-bottom: 6px; }
+  .sev-crit .sv-label { color: #dc2626; }
+  .sev-high .sv-label { color: #d97706; }
+  .sev-med  .sv-label { color: #2563eb; }
+  .sev-low  .sv-label { color: #16a34a; }
+  .sev-card .sv-kw  { font-size: 10px; color: #64748b; line-height: 1.6; }
+
+  /* ── Output schema visual ── */
+  .schema-box {
+    background: #0f172a; border-radius: 10px; padding: 20px; overflow-x: auto;
+    font-family: "SF Mono","Fira Code",monospace; font-size: 12px; line-height: 1.7;
+  }
+  .sk { color: #93c5fd; }  /* key */
+  .sv { color: #86efac; }  /* string value */
+  .sn { color: #fca5a5; }  /* number */
+  .sc { color: #fde68a; }  /* comment */
+  .sp { color: #e2e8f0; }  /* punctuation */
+
+  /* ── badges ── */
+  .badge { border-radius: 20px; padding: 3px 12px; font-size: 11px; font-weight: 700; border: 1px solid; display: inline-block; }
+  .badge-blue   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .badge-green  { background: #f0fdf4; color: #15803d; border-color: #86efac; }
+  .badge-purple { background: #faf5ff; color: #7e22ce; border-color: #d8b4fe; }
+  .badge-amber  { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .badge-red    { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+  .badge-cyan   { background: #f0f9ff; color: #0369a1; border-color: #7dd3fc; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 18px; }
+
+  footer { text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 56px; padding-top: 18px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════ HERO ══ -->
+<div class="hero">
+  <div class="hero-badge">AI Engineering · LLM Agent · Python</div>
+  <h1>🧠 FailureIQ</h1>
+  <p>An AI-powered agent that reads BVT logs, WAS heap dumps, thread dumps, and customer cases — then diagnoses failures, finds root causes, and suggests exact code-level fixes. Runs 100% locally with IBM Granite via Ollama.</p>
+  <div class="hero-chips">
+    <span class="hero-chip">ReAct Agent</span>
+    <span class="hero-chip">RAG</span>
+    <span class="hero-chip">Streaming LLM</span>
+    <span class="hero-chip">Pydantic Validation</span>
+    <span class="hero-chip">Tool Calling</span>
+    <span class="hero-chip">IBM Granite</span>
+    <span class="hero-chip">OpenAI fallback</span>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ══ STATUS ══ -->
+  <div class="status-bar">
+    <div class="pulse"></div>
+    <p>✅ Project is READY TO USE — all source files, sample logs, and config present. One-time setup takes ~5 minutes.</p>
+  </div>
+  <div class="alert">
+    <strong>⚠️ Pre-requisite:</strong> You need <strong>Ollama running locally</strong> (free, recommended) <em>or</em> an <strong>OpenAI API key</strong>. Python 3.10+ and <code>pip</code> required.
+  </div>
+
+
+  <!-- ══════════════════════════ 1. WHAT IS IT ══ -->
+  <section>
+    <h2><span class="sec-icon">💡</span> What is FailureIQ?</h2>
+    <p>FailureIQ is a self-contained <strong>AI agentic system</strong> for automating root-cause analysis of application logs. You give it any log file and it returns a <strong>structured diagnosis</strong>: what broke, why, and the exact fix — including a code snippet.</p>
+    <p>It also serves as a <strong>teaching codebase</strong> demonstrating five core LLM engineering patterns in clean, readable Python.</p>
+
+    <div class="card-grid" style="margin-top:16px;">
+      <div class="mini-card">
+        <div class="icon">📋</div>
+        <div class="title">Input</div>
+        <div class="desc">Any log file: WAS SystemOut, heap dump, javacore, BVT regression, customer P1 case</div>
+      </div>
+      <div class="mini-card">
+        <div class="icon">🤖</div>
+        <div class="title">Processing</div>
+        <div class="desc">ReAct agent: parse → RAG search → classify → LLM stream → validate</div>
+      </div>
+      <div class="mini-card">
+        <div class="icon">📊</div>
+        <div class="title">Output</div>
+        <div class="desc">Structured JSON report: severity, root causes, immediate actions, code fix, prevention</div>
+      </div>
+      <div class="mini-card">
+        <div class="icon">🆓</div>
+        <div class="title">Cost</div>
+        <div class="desc">Runs free locally with IBM Granite via Ollama. No API key needed.</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ 2. HIGH-LEVEL ARCHITECTURE ══ -->
+  <section>
+    <h2><span class="sec-icon">🏗</span> High-Level Architecture</h2>
+    <p>The system is built in clean <strong>5 layers</strong>. Each layer has a single responsibility and is independently swappable.</p>
+
+    <div class="diagram">
+      <!-- SVG layered architecture diagram -->
+      <svg viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0,8 3,0 6" fill="#94a3b8"/>
+          </marker>
+        </defs>
+
+        <!-- Layer backgrounds -->
+        <!-- CLI -->
+        <rect x="10" y="10" width="800" height="54" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="30" y="30" font-family="system-ui" font-size="11" font-weight="800" fill="#1d4ed8">LAYER 1 — CLI (Entry Point)</text>
+        <text x="30" y="50" font-family="monospace" font-size="11" fill="#3b82f6">cli.py</text>
+        <text x="120" y="50" font-family="system-ui" font-size="11" fill="#374151">Parses --file, loads log text, initialises LLM, calls agent, prints rich report</text>
+
+        <!-- Agent -->
+        <rect x="10" y="78" width="800" height="54" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+        <text x="30" y="98" font-family="system-ui" font-size="11" font-weight="800" fill="#15803d">LAYER 2 — ReAct Agent (Orchestration)</text>
+        <text x="30" y="118" font-family="monospace" font-size="11" fill="#22c55e">agent.py</text>
+        <text x="120" y="118" font-family="system-ui" font-size="11" fill="#374151">7-step loop: detect type → parse failures → RAG search → classify severity → build prompt → stream LLM → validate</text>
+
+        <!-- Tools -->
+        <rect x="10" y="146" width="390" height="68" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+        <text x="30" y="166" font-family="system-ui" font-size="11" font-weight="800" fill="#92400e">LAYER 3A — Agent Tools</text>
+        <text x="30" y="184" font-family="monospace" font-size="11" fill="#f59e0b">tools.py</text>
+        <text x="110" y="184" font-family="system-ui" font-size="11" fill="#374151">parse_log · classify_severity</text>
+        <text x="30" y="202" font-family="system-ui" font-size="11" fill="#374151">detect_log_type · read_log_file</text>
+
+        <!-- KB -->
+        <rect x="420" y="146" width="390" height="68" rx="10" fill="#faf5ff" stroke="#a855f7" stroke-width="2"/>
+        <text x="440" y="166" font-family="system-ui" font-size="11" font-weight="800" fill="#7e22ce">LAYER 3B — Knowledge Base (RAG)</text>
+        <text x="440" y="184" font-family="monospace" font-size="11" fill="#a855f7">knowledge_base.py</text>
+        <text x="580" y="184" font-family="system-ui" font-size="11" fill="#374151">8 KB entries</text>
+        <text x="440" y="202" font-family="system-ui" font-size="11" fill="#374151">Keyword search → top-3 matches injected into prompt</text>
+
+        <!-- LLM -->
+        <rect x="10" y="228" width="590" height="54" rx="10" fill="#fff1f2" stroke="#f43f5e" stroke-width="2"/>
+        <text x="30" y="248" font-family="system-ui" font-size="11" font-weight="800" fill="#9f1239">LAYER 4 — LLM Client (Provider Abstraction)</text>
+        <text x="30" y="268" font-family="monospace" font-size="11" fill="#f43f5e">llm_client.py</text>
+        <text x="130" y="268" font-family="system-ui" font-size="11" fill="#374151">Auto-detects Ollama (IBM Granite) → falls back to OpenAI GPT-4o</text>
+
+        <!-- Schema -->
+        <rect x="620" y="228" width="190" height="54" rx="10" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="2"/>
+        <text x="638" y="248" font-family="system-ui" font-size="11" font-weight="800" fill="#0369a1">LAYER 5 — Schema</text>
+        <text x="638" y="268" font-family="monospace" font-size="11" fill="#0ea5e9">schemas.py</text>
+        <text x="638" y="282" font-family="system-ui" font-size="10" fill="#374151">Pydantic validation</text>
+
+        <!-- Down arrows -->
+        <line x1="410" y1="64" x2="410" y2="78" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+        <line x1="410" y1="132" x2="410" y2="146" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+        <line x1="410" y1="214" x2="410" y2="228" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Labels on left -->
+        <text x="10" y="310" font-family="system-ui" font-size="10" fill="#94a3b8">User input flows ↓ down through layers; structured report flows ↑ back up</text>
+      </svg>
+    </div>
+
+    <h3>Layer responsibilities at a glance</h3>
+    <table>
+      <thead><tr><th>Layer</th><th>File</th><th>What it does</th><th>Can be swapped with</th></tr></thead>
+      <tbody>
+        <tr><td>CLI</td><td><code>cli.py</code></td><td>Entry point, argument parsing, report display</td><td>Web API, Slack bot, REST endpoint</td></tr>
+        <tr><td>Agent</td><td><code>agent.py</code></td><td>ReAct reasoning loop, tool orchestration</td><td>LangChain Agent, AutoGPT, watsonx Orchestrate</td></tr>
+        <tr><td>Tools</td><td><code>tools.py</code></td><td>Pure Python functions (no LLM) that extract facts from logs</td><td>Any custom parser / Spark job</td></tr>
+        <tr><td>RAG KB</td><td><code>knowledge_base.py</code></td><td>Known-errors runbook with keyword similarity search</td><td>pgvector, Chroma, Pinecone, Weaviate</td></tr>
+        <tr><td>LLM Client</td><td><code>llm_client.py</code></td><td>OpenAI-compatible client for Ollama or OpenAI</td><td>Any LLM provider with an OpenAI-compatible API</td></tr>
+        <tr><td>Schema</td><td><code>schemas.py</code></td><td>Pydantic models enforce LLM JSON output shape</td><td>Dataclasses, TypedDict, JSON Schema</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ══════════════════════════ 3. FILE MAP ══ -->
+  <section>
+    <h2><span class="sec-icon">📁</span> Project File Map</h2>
+    <div class="file-map">
+      <div class="file-node fn-entry">
+        <div class="fn-name">src/cli.py</div>
+        <div class="fn-role">🚪 Entry Point</div>
+        <div class="fn-desc">Parses --file / --output / --quiet flags. Loads log, initialises LLM, calls agent, prints rich terminal report.</div>
+      </div>
+      <div class="file-node fn-agent">
+        <div class="fn-name">src/agent.py</div>
+        <div class="fn-role">🤖 ReAct Agent</div>
+        <div class="fn-desc">7-step orchestration loop. Builds the full LLM context message, streams response, parses JSON output.</div>
+      </div>
+      <div class="file-node fn-llm">
+        <div class="fn-name">src/llm_client.py</div>
+        <div class="fn-role">⚡ LLM Abstraction</div>
+        <div class="fn-desc">Auto-detects Ollama (free). Falls back to OpenAI. Same interface for both. Provides .complete() and .stream().</div>
+      </div>
+      <div class="file-node fn-tools">
+        <div class="fn-name">src/tools.py</div>
+        <div class="fn-role">🔧 Agent Tools</div>
+        <div class="fn-desc">Pure Python: read_log_file, parse_log, search_kb, classify_severity, detect_log_type. No LLM calls.</div>
+      </div>
+      <div class="file-node fn-kb">
+        <div class="fn-name">src/knowledge_base.py</div>
+        <div class="fn-role">📚 RAG Store</div>
+        <div class="fn-desc">8 KBEntry records (OOM × 3, threads, connection pool, HTTP 404, GC). Keyword-scored similarity search.</div>
+      </div>
+      <div class="file-node fn-schema">
+        <div class="fn-name">src/schemas.py</div>
+        <div class="fn-role">✅ Pydantic Schema</div>
+        <div class="fn-desc">DiagnosisReport + RootCause models. Validates LLM JSON at runtime. Ensures typed, safe output.</div>
+      </div>
+      <div class="file-node fn-demo">
+        <div class="fn-name">src/demo.py</div>
+        <div class="fn-role">▶️ Demo Runner</div>
+        <div class="fn-desc">Runs all 5 sample log types automatically. Good for showing a full end-to-end demo.</div>
+      </div>
+      <div class="file-node fn-tools">
+        <div class="fn-name">logs/</div>
+        <div class="fn-role">📂 Sample Data</div>
+        <div class="fn-desc">7 log files: SystemOut, heapdump, javacore, BVT regression, CX regression, sample BVT, customer P1 case.</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ 4. REACT AGENT EXPLAINED ══ -->
+  <section>
+    <h2><span class="sec-icon">🔁</span> The ReAct Agent Pattern — How It Thinks</h2>
+    <p><strong>ReAct = Reason + Act.</strong> Instead of sending the raw log straight to the LLM, the agent first uses deterministic tools to extract facts, then hands a rich, structured context to the LLM for reasoning. This makes the diagnosis far more accurate and traceable.</p>
+
+    <div class="react-loop">
+      <div class="react-step reason">
+        <div class="rs-icon">🧠</div>
+        <div class="rs-label">REASON</div>
+        <div class="rs-desc">Agent reads the log and decides what to do next</div>
+      </div>
+      <div class="react-step act">
+        <div class="rs-icon">⚙️</div>
+        <div class="rs-label">ACT</div>
+        <div class="rs-desc">Calls a tool: parse_log, search_kb, or classify_severity</div>
+      </div>
+      <div class="react-step obs">
+        <div class="rs-icon">👁</div>
+        <div class="rs-label">OBSERVE</div>
+        <div class="rs-desc">Tool runs and returns results (failures list, KB matches, severity)</div>
+      </div>
+      <div class="react-step out">
+        <div class="rs-icon">📤</div>
+        <div class="rs-label">OUTPUT</div>
+        <div class="rs-desc">LLM synthesises all observations into final JSON diagnosis</div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:#64748b;">This is the same pattern used by LangChain Agents, AutoGPT, and IBM watsonx Orchestrate. The LLM never executes code directly — it only instructs. Python runs the tools and feeds results back.</p>
+  </section>
+
+
+  <!-- ══════════════════════════ 5. STEP-BY-STEP PIPELINE ══ -->
+  <section>
+    <h2><span class="sec-icon">⚡</span> Full Execution Pipeline (Step by Step)</h2>
+    <p>Here is exactly what happens from the moment you run the command to the moment the report appears on screen.</p>
+
+    <div class="pipeline">
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-1">1</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">User runs the CLI command</div>
+          <div class="pc-file">cli.py → main()</div>
+          <div class="pc-desc">You type <code>python src/cli.py --file logs/SystemOut.log</code>. The CLI prints the banner, reads the file from disk using <code>read_log_file()</code>, and reports the file size.</div>
+        </div>
+      </div>
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-2">2</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">LLM auto-detection</div>
+          <div class="pc-file">llm_client.py → LLMClient.create()</div>
+          <div class="pc-desc">Makes a GET request to <code>http://localhost:11434/v1/models</code>. If Ollama responds, it picks the best installed model from a priority list (IBM Granite first). If Ollama is offline, it reads <code>OPENAI_API_KEY</code> from <code>.env</code> and uses GPT-4o. If neither works, it prints a clear install guide and exits.</div>
+        </div>
+      </div>
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-3">3</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">Log type detection</div>
+          <div class="pc-file">tools.py → detect_log_type()</div>
+          <div class="pc-desc">Reads the first 2,000 characters and looks for signature keywords. Returns one of: <code>was_systemout</code> (WebSphere logs), <code>javacore</code> (thread dump), <code>heapdump</code> (heap dump), <code>bvt</code> (Jenkins/Gradle), or <code>generic</code>.</div>
+        </div>
+      </div>
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-4">4</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">Failure extraction</div>
+          <div class="pc-file">tools.py → parse_log()</div>
+          <div class="pc-desc">Scans every line with a regex pattern that catches: <code>FAIL, ERROR, Exception, FATAL, OutOfMemoryError, WSVR0605W, CWWKE0701E, SRVE0777E, heapdump, NullPointer, BUILD FAILURE, LEAK SUSPECT</code>. For each match: deduplicates identical lines, extracts the test ID (e.g. <code>[AUTH-004]</code>), captures 5 lines of context below. Returns up to 15 failures.</div>
+        </div>
+      </div>
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-5">5</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">RAG — Knowledge Base search</div>
+          <div class="pc-file">knowledge_base.py → search_knowledge_base()</div>
+          <div class="pc-desc">For each failure: concatenates <code>error_type + message + context</code> and keyword-scores all 8 KB entries. Each KB entry has a list of trigger keywords; entries with the most keyword matches are returned. Top-3 matches per failure are stored as "ground truth" context for the LLM.</div>
+        </div>
+      </div>
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-6">6</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">Rule-based severity classification</div>
+          <div class="pc-file">tools.py → classify_severity()</div>
+          <div class="pc-desc">No LLM involved. Scans all error messages for hardcoded keyword tiers: <strong class="sev-c">CRITICAL</strong> if OOM / heapdump / server crash found; <strong class="sev-h">HIGH</strong> for hung threads / pool exhaustion / GC overhead; <strong class="sev-m">MEDIUM</strong> for 404 / timeouts / build failures; <strong class="sev-l">LOW</strong> otherwise.</div>
+        </div>
+      </div>
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-7">7</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">Prompt assembly</div>
+          <div class="pc-file">agent.py → _build_context_message()</div>
+          <div class="pc-desc">Builds a rich user message with: log type + severity header, up to 8,000 chars of log text (first 3,000 + last 5,000 for large files), formatted failure list, and all KB matches labelled as "ground truth". This is combined with a system prompt that tells the LLM it is an expert SRE and must return a specific JSON schema.</div>
+        </div>
+      </div>
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-8">8</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">Streaming LLM call</div>
+          <div class="pc-file">llm_client.py → LLMClient.stream()</div>
+          <div class="pc-desc">Calls the OpenAI chat completions API with <code>stream=True</code>. Tokens arrive one-by-one and are printed immediately — the same effect as ChatGPT's typing animation. Temperature = 0.2 (low randomness for factual analysis). Max tokens = 2,048. Works identically for Ollama (which uses the same API at localhost:11434) and OpenAI.</div>
+        </div>
+      </div>
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-9">9</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">JSON extraction + Pydantic validation</div>
+          <div class="pc-file">agent.py → _parse_diagnosis() · schemas.py</div>
+          <div class="pc-desc">Regex extracts the first <code>{...}</code> block from the streamed text. <code>DiagnosisReport(**data)</code> validates every field: types, ranges (confidence 0.0–1.0), required fields, and the severity enum. If the LLM returned malformed JSON, a safe fallback report is returned — the app never crashes.</div>
+        </div>
+      </div>
+
+      <div class="pipe-row">
+        <div class="pipe-dot-col"><div class="pipe-dot col-10">10</div><div class="pipe-line"></div></div>
+        <div class="pipe-card">
+          <div class="pc-title">Rich terminal report + optional JSON export</div>
+          <div class="pc-file">cli.py → _print_report()</div>
+          <div class="pc-desc">Prints a colour-coded report using the <code>rich</code> library: severity badge, log type, failure count, root causes table with confidence %, immediate action list, and prevention recommendations. If <code>--output report.json</code> was passed, the full Pydantic model is serialised to disk.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ 6. RAG EXPLAINED ══ -->
+  <section>
+    <h2><span class="sec-icon">📚</span> RAG — How the Knowledge Base Works</h2>
+    <p><strong>RAG = Retrieval-Augmented Generation.</strong> Instead of relying only on the LLM's training data, FailureIQ injects your team's runbook (known errors + proven fixes) directly into the prompt. The LLM answers using <em>both</em> sources.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 820 110" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <defs>
+          <marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0,8 3,0 6" fill="#94a3b8"/>
+          </marker>
+        </defs>
+        <!-- Input -->
+        <rect x="10" y="30" width="130" height="50" rx="8" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="75" y="52" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#1d4ed8">Failure text</text>
+        <text x="75" y="68" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">error_type +</text>
+        <text x="75" y="80" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">message + context</text>
+
+        <line x1="140" y1="55" x2="170" y2="55" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+        <!-- KB -->
+        <rect x="170" y="10" width="150" height="90" rx="8" fill="#faf5ff" stroke="#a855f7" stroke-width="1.5"/>
+        <text x="245" y="30" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#7e22ce">Knowledge Base</text>
+        <text x="245" y="48" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">8 KB entries</text>
+        <text x="245" y="62" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">OOM · Threads · Pool</text>
+        <text x="245" y="76" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">GC · HTTP 404 · BVT</text>
+        <text x="245" y="90" text-anchor="middle" font-family="system-ui" font-size="10" fill="#7e22ce">keyword scoring</text>
+
+        <line x1="320" y1="55" x2="350" y2="55" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+        <!-- Top-3 -->
+        <rect x="350" y="30" width="130" height="50" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="415" y="52" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#92400e">Top-3 matches</text>
+        <text x="415" y="68" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">root_cause + fix</text>
+        <text x="415" y="80" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">+ code snippet</text>
+
+        <line x1="480" y1="55" x2="510" y2="55" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+        <!-- Prompt -->
+        <rect x="510" y="20" width="140" height="70" rx="8" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="1.5"/>
+        <text x="580" y="42" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#0369a1">LLM Prompt</text>
+        <text x="580" y="58" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">System prompt +</text>
+        <text x="580" y="72" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">failures + KB context</text>
+        <text x="580" y="84" text-anchor="middle" font-family="system-ui" font-size="10" fill="#0369a1">"ground truth"</text>
+
+        <line x1="650" y1="55" x2="680" y2="55" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+        <!-- Output -->
+        <rect x="680" y="30" width="130" height="50" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+        <text x="745" y="52" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#15803d">Diagnosis JSON</text>
+        <text x="745" y="68" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">root cause + fix</text>
+        <text x="745" y="80" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">+ code snippet</text>
+      </svg>
+    </div>
+
+    <h3>Knowledge Base Entries</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Category</th><th>Title</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td>KB-001</td><td>Memory Leak</td><td>Unbounded static ArrayList cache — ReportCacheManager</td><td><span class="sev-c">CRITICAL</span></td></tr>
+        <tr><td>KB-002</td><td>Memory Leak</td><td>Static StringBuilder accumulating audit entries — AuditLogger</td><td><span class="sev-c">CRITICAL</span></td></tr>
+        <tr><td>KB-003</td><td>Memory Leak</td><td>Expired HTTP sessions never evicted — SessionRegistry</td><td><span class="sev-c">CRITICAL</span></td></tr>
+        <tr><td>KB-004</td><td>Thread Contention</td><td>WebContainer threads blocked on shared monitor lock</td><td><span class="sev-h">HIGH</span></td></tr>
+        <tr><td>KB-005</td><td>Connection Pool</td><td>DB connection pool exhausted — leaks or slow queries</td><td><span class="sev-h">HIGH</span></td></tr>
+        <tr><td>KB-006</td><td>Build / Test</td><td>Reporting service REST endpoint returning 404</td><td><span class="sev-h">HIGH</span></td></tr>
+        <tr><td>KB-007</td><td>Build / Test</td><td>Project deletion blocked by active jobs — test race</td><td><span class="sev-m">MEDIUM</span></td></tr>
+        <tr><td>KB-008</td><td>GC / Performance</td><td>GC thrashing with near-zero heap reclamation</td><td><span class="sev-h">HIGH</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ══════════════════════════ 7. LLM PROVIDER ══ -->
+  <section>
+    <h2><span class="sec-icon">🤖</span> LLM Provider — How Auto-Detection Works</h2>
+    <p>FailureIQ uses the <strong>OpenAI Python SDK for both providers</strong>. Ollama exposes an OpenAI-compatible REST API at <code>localhost:11434</code> — so we just point the same SDK at a different base URL. Zero code changes needed when switching providers.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 820 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <defs>
+          <marker id="arr3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0,8 3,0 6" fill="#94a3b8"/>
+          </marker>
+          <marker id="arr4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0,8 3,0 6" fill="#f59e0b"/>
+          </marker>
+        </defs>
+
+        <!-- Start -->
+        <rect x="10" y="50" width="120" height="40" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+        <text x="70" y="68" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#e2e8f0">App starts</text>
+        <text x="70" y="82" text-anchor="middle" font-family="system-ui" font-size="10" fill="#94a3b8">LLMClient.create()</text>
+
+        <line x1="130" y1="70" x2="160" y2="70" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+        <!-- Probe Ollama -->
+        <rect x="160" y="40" width="140" height="60" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="230" y="62" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#92400e">Probe Ollama</text>
+        <text x="230" y="78" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">GET localhost:11434</text>
+        <text x="230" y="92" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">/v1/models (2s timeout)</text>
+
+        <!-- Yes path -->
+        <line x1="300" y1="55" x2="380" y2="30" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arr3)"/>
+        <text x="330" y="36" font-family="system-ui" font-size="10" fill="#15803d" font-weight="700">✓ Running</text>
+
+        <rect x="380" y="10" width="170" height="80" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+        <text x="465" y="30" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#15803d">Ollama (FREE ✓)</text>
+        <text x="465" y="46" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">1. granite3.1-dense (IBM)</text>
+        <text x="465" y="60" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">2. deepseek-r1:8b</text>
+        <text x="465" y="74" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">3. qwen3:8b / llama3.1:8b</text>
+        <text x="465" y="88" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">→ first installed match wins</text>
+
+        <!-- No path -->
+        <line x1="300" y1="85" x2="380" y2="110" stroke="#f97316" stroke-width="1.5" marker-end="url(#arr3)"/>
+        <text x="328" y="106" font-family="system-ui" font-size="10" fill="#c2410c" font-weight="700">✗ Offline</text>
+
+        <rect x="380" y="100" width="170" height="30" rx="8" fill="#fff7ed" stroke="#f97316" stroke-width="2"/>
+        <text x="465" y="113" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#c2410c">Check .env for OPENAI_API_KEY</text>
+        <text x="465" y="125" text-anchor="middle" font-family="system-ui" font-size="10" fill="#374151">uses GPT-4o (paid)</text>
+
+        <!-- Both point to same client -->
+        <line x1="550" y1="50" x2="610" y2="70" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr3)"/>
+        <line x1="550" y1="115" x2="610" y2="90" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+        <rect x="610" y="50" width="150" height="50" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+        <text x="685" y="70" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#e2e8f0">Same OpenAI SDK</text>
+        <text x="685" y="86" text-anchor="middle" font-family="system-ui" font-size="10" fill="#94a3b8">.complete() / .stream()</text>
+      </svg>
+    </div>
+
+    <p style="font-size:13px;color:#64748b;">The key insight: Ollama uses <em>exactly</em> the same OpenAI REST API format, just at a different base URL (<code>http://localhost:11434/v1</code>). This means zero code changes to switch between a free local model and a paid cloud model.</p>
+  </section>
+
+
+  <!-- ══════════════════════════ 8. SEVERITY RULES ══ -->
+  <section>
+    <h2><span class="sec-icon">🚨</span> Severity Classification — Visual Rules</h2>
+    <p>Severity is classified <strong>without an LLM</strong> — it's pure rule-based Python that scans all error messages for keywords. Fast, deterministic, reproducible.</p>
+
+    <div class="sev-grid">
+      <div class="sev-card sev-crit">
+        <div class="sv-icon">🔴</div>
+        <div class="sv-label">CRITICAL</div>
+        <div class="sv-kw">OutOfMemoryError<br>heapdump triggered<br>LEAK SUSPECT<br>server crashed<br>manual intervention<br>automatic restart disabled</div>
+      </div>
+      <div class="sev-card sev-high">
+        <div class="sv-icon">🟠</div>
+        <div class="sv-label">HIGH</div>
+        <div class="sv-kw">hung thread<br>WSVR0605W<br>connection pool exhausted<br>GC overhead<br>thread BLOCKED</div>
+      </div>
+      <div class="sev-card sev-med">
+        <div class="sv-icon">🟡</div>
+        <div class="sv-label">MEDIUM</div>
+        <div class="sv-kw">HTTP 404<br>WARN<br>timeout<br>retry<br>BUILD FAILURE</div>
+      </div>
+      <div class="sev-card sev-low">
+        <div class="sv-icon">🟢</div>
+        <div class="sv-label">LOW</div>
+        <div class="sv-kw">Everything else<br>Minor warnings<br>Info-level messages<br>Unknown errors</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ 9. OUTPUT SCHEMA ══ -->
+  <section>
+    <h2><span class="sec-icon">📐</span> Structured Output Schema</h2>
+    <p>The LLM is instructed to return a <strong>strict JSON object</strong>. Pydantic validates every field — wrong type, missing field, or confidence outside 0.0–1.0 will be caught before the app uses the data. This makes LLM output reliable enough for production pipelines.</p>
+
+    <div class="schema-box">
+<span class="sp">{</span>
+  <span class="sk">"summary"</span><span class="sp">:</span>             <span class="sv">"Server crashed 3 times — unbounded static cache exhausted heap"</span><span class="sp">,</span>
+  <span class="sk">"severity"</span><span class="sp">:</span>            <span class="sv">"CRITICAL"</span><span class="sc">  ← enum: CRITICAL | HIGH | MEDIUM | LOW</span>
+  <span class="sk">"log_type"</span><span class="sp">:</span>             <span class="sv">"was_systemout"</span><span class="sp">,</span>
+  <span class="sk">"total_failures"</span><span class="sp">:</span>       <span class="sn">12</span><span class="sp">,</span>
+  <span class="sk">"root_causes"</span><span class="sp">: [</span>
+    <span class="sp">{</span>
+      <span class="sk">"failure_id"</span><span class="sp">:</span>          <span class="sv">"OOM-1"</span><span class="sp">,</span>
+      <span class="sk">"error_type"</span><span class="sp">:</span>          <span class="sv">"OutOfMemoryError"</span><span class="sp">,</span>
+      <span class="sk">"affected_component"</span><span class="sp">:</span>  <span class="sv">"ReportCacheManager"</span><span class="sp">,</span>
+      <span class="sk">"root_cause"</span><span class="sp">:</span>          <span class="sv">"Unbounded static ArrayList never evicted..."</span><span class="sp">,</span>
+      <span class="sk">"suggested_fix"</span><span class="sp">:</span>       <span class="sv">"1. Replace with Caffeine bounded cache..."</span><span class="sp">,</span>
+      <span class="sk">"code_fix"</span><span class="sp">:</span>            <span class="sv">"Cache&lt;String,ReportEntry&gt; cache = Caffeine.newBuilder()..."</span><span class="sp">,</span>
+      <span class="sk">"confidence"</span><span class="sp">:</span>          <span class="sn">0.95</span>  <span class="sc">← validated: float 0.0 – 1.0</span>
+    <span class="sp">}</span>
+  <span class="sp">],</span>
+  <span class="sk">"immediate_actions"</span><span class="sp">:</span>     <span class="sp">[</span><span class="sv">"Restart AppServer01"</span><span class="sp">,</span> <span class="sv">"Increase -Xmx to 4096m"</span><span class="sp">],</span>
+  <span class="sk">"prevention_recommendations"</span><span class="sp">: [</span><span class="sv">"Use Caffeine bounded cache"</span><span class="sp">,</span> <span class="sv">"Add heap alerting at 70%"</span><span class="sp">]</span>
+<span class="sp">}</span>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════ 10. QUICK START ══ -->
+  <section>
+    <h2><span class="sec-icon">🚀</span> Quick Start — Step by Step</h2>
+
+    <ul class="steps">
+      <li class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Install Ollama — the free local LLM runner</div>
+          <div class="step-desc">Runs IBM Granite and Llama models entirely on your laptop. No API key. No internet after initial download.</div>
+          <pre>brew install ollama
+ollama serve          # starts the Ollama API server on port 11434</pre>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Pull IBM Granite (recommended) or any Ollama model</div>
+          <div class="step-desc">The agent auto-detects whichever model you have installed. IBM Granite is first in the priority list.</div>
+          <pre>ollama pull granite3.1-dense   # ~2 GB, IBM Granite — best for IBM demos</pre>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Install Python dependencies</div>
+          <div class="step-desc">5 lightweight packages. Run from inside the <code>FailureIQ/</code> folder.</div>
+          <pre>cd FailureIQ
+pip install -r requirements.txt</pre>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Analyze any log file</div>
+          <div class="step-desc">Pass any of the 7 included sample logs — or point it at your own log file.</div>
+          <pre>python src/cli.py --file logs/SystemOut.log
+python src/cli.py --file logs/bvt-regression.log
+python src/cli.py --file logs/heapdump.20240917.103000.AppServer01.0001.phd
+python src/cli.py --file logs/javacore.20240917.103000.AppServer01.0002.txt
+python src/cli.py --file /path/to/your/own/app.log</pre>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">(Optional) Save the structured JSON report</div>
+          <div class="step-desc">The full Pydantic model is serialised to JSON — pipe it into dashboards, Jira tickets, or Slack alerts.</div>
+          <pre>python src/cli.py --file logs/SystemOut.log --output report.json</pre>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">(Optional) Run the full demo</div>
+          <div class="step-desc">Runs all 5 sample log types back-to-back. Great for a live demo.</div>
+          <pre>python src/demo.py</pre>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">(Alternative) Use OpenAI if Ollama is not available</div>
+          <div class="step-desc">Copy the env template, add your OpenAI key, and run normally. The agent auto-detects the fallback.</div>
+          <pre>cp .env.example .env
+# Edit .env → OPENAI_API_KEY=sk-...
+python src/cli.py --file logs/SystemOut.log</pre>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+
+  <!-- ══════════════════════════ 11. SAMPLE LOGS ══ -->
+  <section>
+    <h2><span class="sec-icon">📂</span> Included Sample Log Files</h2>
+    <table>
+      <thead><tr><th>File</th><th>Type</th><th>What it Contains</th></tr></thead>
+      <tbody>
+        <tr><td><code>logs/SystemOut.log</code></td><td>WAS SystemOut</td><td>WebSphere log with OOM errors, heap exhaustion, hung threads, GC overhead — targets KB-001 to KB-004</td></tr>
+        <tr><td><code>logs/heapdump.20240917…phd</code></td><td>JVM Heap Dump</td><td>OOM-triggered heap dump — agent extracts LEAK SUSPECT blocks and JVMDUMP markers</td></tr>
+        <tr><td><code>logs/javacore.20240917…txt</code></td><td>Javacore / Thread Dump</td><td>Thread state snapshot — shows BLOCKED threads, lock ownership, stack traces for KB-004</td></tr>
+        <tr><td><code>logs/bvt-regression.log</code></td><td>Jenkins BVT</td><td>Real BVT run with HTTP 404s, Gradle build failures, test assertion errors — targets KB-006, KB-007</td></tr>
+        <tr><td><code>logs/cx-regression.log</code></td><td>CX Regression</td><td>Customer experience suite with API errors, cleanup race conditions</td></tr>
+        <tr><td><code>logs/bvt-sample.log</code></td><td>Sample BVT</td><td>Simulated BVT log for quick local testing</td></tr>
+        <tr><td><code>logs/customer-case.log</code></td><td>Customer P1 Case</td><td>Simulated P1 customer support case log</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ══════════════════════════ 12. CLI REFERENCE ══ -->
+  <section>
+    <h2><span class="sec-icon">⌨️</span> CLI Reference</h2>
+    <table>
+      <thead><tr><th>Flag</th><th>Short</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>--file</code></td><td><code>-f</code></td><td><code>logs/SystemOut.log</code></td><td>Path to the log file to analyse (.log, .txt, .phd)</td></tr>
+        <tr><td><code>--output</code></td><td><code>-o</code></td><td><em>none</em></td><td>Save the full DiagnosisReport as a JSON file at this path</td></tr>
+        <tr><td><code>--quiet</code></td><td><code>-q</code></td><td><em>off</em></td><td>Suppress token-by-token streaming; show only the final structured summary</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+
+  <!-- ══════════════════════════ 13. DEPENDENCIES ══ -->
+  <section>
+    <h2><span class="sec-icon">📦</span> Python Dependencies</h2>
+    <table>
+      <thead><tr><th>Package</th><th>Version</th><th>Why it's needed</th></tr></thead>
+      <tbody>
+        <tr><td><code>openai</code></td><td>≥ 1.30.0</td><td>Chat completions API — used for <em>both</em> Ollama (via <code>base_url</code>) and OpenAI. Same SDK, different URL.</td></tr>
+        <tr><td><code>ollama</code></td><td>≥ 0.2.1</td><td>Ollama Python SDK — used to probe which models are installed locally.</td></tr>
+        <tr><td><code>python-dotenv</code></td><td>≥ 1.0.0</td><td>Loads <code>.env</code> file so <code>OPENAI_API_KEY</code> is available as an environment variable.</td></tr>
+        <tr><td><code>rich</code></td><td>≥ 13.7.0</td><td>Beautiful terminal output — coloured panels, tables, severity badges, progress text.</td></tr>
+        <tr><td><code>pydantic</code></td><td>≥ 2.7.0</td><td>Validates LLM JSON response against schema at runtime. Prevents malformed output reaching your app.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+</body>
+</html>

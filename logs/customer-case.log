@@ -1,0 +1,65 @@
+use===== CUSTOMER SUPPORT CASE =====
+Case ID   : CS-20240601-00892
+Priority  : P1 — Critical
+Opened    : 2024-06-01 09:15:00 UTC
+Customer  : Acme Corp (Enterprise Tier)
+Product   : MyApp v3.2.1
+Reporter  : John Smith <john.smith@acmecorp.com>
+
+===== SUBJECT =====
+Production down — users unable to login since 09:00 UTC
+
+===== CUSTOMER DESCRIPTION =====
+Since approximately 9:00 AM UTC our entire user base is unable to log into the application.
+The login page loads fine but after entering credentials the spinner just runs forever and
+then shows a generic "Something went wrong" error. This is affecting 100% of our users (~5000 active).
+We are in a critical business window (end of quarter processing) and this is causing significant
+revenue impact. We need this resolved immediately.
+
+Browser console shows: "Failed to fetch" on POST /api/auth/login
+Network tab shows: POST /api/auth/login → Status: (pending) → eventually CORS error
+
+===== ENVIRONMENT =====
+Deployment: AWS us-east-1
+App Version: 3.2.1 (deployed yesterday at 23:45 UTC)
+Database: RDS PostgreSQL 15
+Cache: ElastiCache Redis 7.0
+Load Balancer: ALB
+
+===== STEPS TO REPRODUCE =====
+1. Open https://app.acmecorp.com
+2. Enter any valid username and password
+3. Click Login
+4. Observe: spinner runs indefinitely, then CORS error appears
+
+===== LOGS FROM CUSTOMER =====
+2024-06-01 09:00:12 ERROR [AuthController] CORS policy blocked request from origin 'https://app.acmecorp.com'
+2024-06-01 09:00:13 ERROR [AuthController] No 'Access-Control-Allow-Origin' header present
+2024-06-01 09:00:14 WARN  [AuthController] Preflight OPTIONS request rejected — missing CORS headers
+2024-06-01 09:01:00 ERROR [AuthController] 500 responses spiking — 847 errors in last 60 seconds
+2024-06-01 09:01:01 ERROR [DB] Connection refused: postgresql://prod-db:5432/myapp
+2024-06-01 09:01:02 ERROR [DB] FATAL: password authentication failed for user "app_user"
+2024-06-01 09:05:00 INFO  [Deploy] Rollback initiated for build #4822
+
+===== WHAT CUSTOMER HAS TRIED =====
+- Cleared browser cache and cookies
+- Tested in incognito and different browsers
+- Confirmed DNS resolves correctly
+- Checked that app.acmecorp.com SSL cert is valid
+- Attempted rollback at 09:05 but issue persists after rollback
+
+===== INTERNAL NOTES (Support Agent) =====
+Checked deployment history — build #4822 deployed at 23:45 UTC introduced:
+  - New CORS policy configuration in nginx.conf
+  - Database password rotation (automated via AWS Secrets Manager)
+  - Updated AuthService to use connection pool v2
+
+Checked AWS console:
+  - ALB showing 98% 5xx errors since 09:00
+  - RDS showing "too many connections" — current: 512, max: 512
+  - Redis appears healthy
+
+===== CASE STATUS =====
+Status: Open — Awaiting Root Cause Analysis
+Escalated To: Engineering On-Call
+SLA Breach: T-45 minutes
