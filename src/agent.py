@@ -212,8 +212,14 @@ def _parse_diagnosis(
     log_type: str,
 ) -> DiagnosisReport:
     """Extract and validate JSON from the LLM response using Pydantic."""
-    # Try to extract JSON block from response
-    json_match = re.search(r"\{[\s\S]*\}", response)
+    # Strip <think>...</think> blocks produced by reasoning models (e.g. deepseek-r1)
+    clean = re.sub(r"<think>[\s\S]*?</think>", "", response, flags=re.IGNORECASE).strip()
+
+    # Also strip markdown code fences (```json ... ```)
+    clean = re.sub(r"```(?:json)?\s*", "", clean).replace("```", "").strip()
+
+    # Try to extract JSON block from cleaned response
+    json_match = re.search(r"\{[\s\S]*\}", clean)
     if json_match:
         try:
             data = json.loads(json_match.group(0))

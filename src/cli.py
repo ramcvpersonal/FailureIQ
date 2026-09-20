@@ -17,6 +17,7 @@ import json
 import sys
 import os
 import time
+from datetime import datetime
 
 from rich.console import Console
 from rich.panel import Panel
@@ -47,7 +48,7 @@ def main():
     parser.add_argument(
         "--output", "-o",
         required=False,
-        help="Save JSON report to file (optional)"
+        help="Save JSON report to file (optional). Defaults to reports/<logname>-<timestamp>.json"
     )
     parser.add_argument(
         "--quiet", "-q",
@@ -88,15 +89,27 @@ def main():
     _print_report(report)
 
     # ── Save JSON output ──────────────────────────────────────────────────────
-    if args.output:
-        with open(args.output, "w") as f:
-            json.dump(report.model_dump(), f, indent=2)
-        console.print(f"\n[green]✅ Report saved to:[/green] {args.output}")
+    output_path = args.output or _default_report_path(log_file)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(report.model_dump(), f, indent=2)
+    console.print(f"\n[green]✅ Report saved to:[/green] {output_path}")
 
     console.print(
         f"\n[dim]✅ Analysis complete in {elapsed:.1f}s | "
         f"Provider: {llm.provider} | Model: {llm.model}[/dim]\n"
     )
+
+
+# ── Path Helpers ──────────────────────────────────────────────────────────────
+
+def _default_report_path(log_file: str) -> str:
+    """Build a timestamped report path inside the project's reports/ folder."""
+    base = os.path.splitext(os.path.basename(log_file))[0]
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    # reports/ is relative to the project root (one level up from src/)
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(project_root, "reports", f"{base}-{ts}.json")
 
 
 # ── Display Helpers ───────────────────────────────────────────────────────────
